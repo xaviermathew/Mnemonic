@@ -74,7 +74,7 @@ tldextract==2.2.2
 tqdm==4.45.0
 traitlets==4.3.3
 twint==2.1.19
-urllib3==1.21.1
+urllib3==1.24.2
 urlnormalizer==1.2.5
 vine==1.3.0
 wcwidth==0.1.9
