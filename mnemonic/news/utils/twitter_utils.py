@@ -2,6 +2,9 @@ from retry import retry
 import twint
 from twint.tweet import tweet as Tweet
 
+from django.conf import settings
+
+from mnemonic.news.utils.cache_utils import DiskCacheManager
 from mnemonic.news.utils.msgpack_utils import streaming_loads, dumps
 from mnemonic.news.utils.string_utils import slugify
 
@@ -11,10 +14,23 @@ def get_crawl_fname(prefix, signature_parts):
     return prefix % s
 
 
+def update_seen_tweets_disk_cache(since=None):
+    from mnemonic.news.models import Tweet
+
+    filters = {}
+    if since:
+        filters['published_on__gte'] = since
+    qs = Tweet.objects.filter(**filters).values_list('tweet_id', flat=True)
+    return qs.iterator()
+
+
 class CrawlBuffer(object):
-    def __init__(self, signature_parts):
+    def __init__(self, signature_parts, only_new=True):
         self.fname = get_crawl_fname('state/twint/results_%s.msgpack', signature_parts)
         self.file = open(self.fname, 'ab')
+        self.only_new = only_new
+        if only_new:
+            self.seen = DiskCacheManager.get(settings.DISK_CACHE_SEEN_TWEETS)
 
     def append(self, tweet):
         self.file.write(dumps(vars(tweet)))
@@ -24,6 +40,8 @@ class CrawlBuffer(object):
         self.file.close()
         data = streaming_loads(open(self.fname, 'rb'))
         for d in data:
+            if self.only_new and d['id'] in self.seen:
+                continue
             t = Tweet()
             t.__dict__.update(d)
             yield t

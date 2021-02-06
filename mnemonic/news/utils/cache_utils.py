@@ -1,12 +1,15 @@
 import hashlib
 import os
 
+import diskcache
 import requests
 from scrapy.extensions.httpcache import FilesystemCacheStorage
+from tqdm import tqdm
 from urlnormalizer import normalize_url
 
 from django.conf import settings
 
+from mnemonic.news.utils.class_utils import get_object_from_python_path
 from mnemonic.news.utils.file_utils import ShelveFile, mkdir_p
 
 
@@ -51,3 +54,20 @@ class DownloadCacheStorage(FilesystemCacheStorage):
             return None
         else:
             return response
+
+
+class DiskCacheManager(object):
+    @classmethod
+    def get(cls, name):
+        path = settings.DISK_CACHE_ROOT + name + '.dc'
+        return diskcache.Cache(path)
+
+    @classmethod
+    def update(cls, name, **kwargs):
+        cfg = settings.DISK_CACHES[name]
+        fn = get_object_from_python_path(cfg['fn'])
+        data = fn(**kwargs)
+        cache = cls.get(name)
+        if cfg['type'] == 'set':
+            for item in tqdm(data, desc='updating diskcache:%s' % name):
+                cache[item] = True

@@ -6,11 +6,12 @@ CRONTAB_FILE=config/crontab/crontab
 link_manage_py:
 	ln -s $(PROJECT_DIR)/manage.py $(VIRTUAL_ENV_ROOT)/$(VIRTUAL_ENV_NAME)/bin/manage.py
 make_dirs:
-	mkdir -p $(PROJECT_DIR)/logs/celery/
-	mkdir -p $(PROJECT_DIR)/pids/celery/
+	mkdir -p $(PROJECT_DIR)/logs/celery
+	mkdir -p $(PROJECT_DIR)/pids/celery
 	mkdir -p $(PROJECT_DIR)/static/
 	mkdir -p $(PROJECT_DIR)/state
 	mkdir -p $(PROJECT_DIR)/state/twint
+	mkdir -p $(PROJECT_DIR)/state/disk_cache
 	mkdir -p $(PROJECT_DIR)/data/cache/articles
 	touch $(PROJECT_DIR)/state/logrotate-state
 swap:
