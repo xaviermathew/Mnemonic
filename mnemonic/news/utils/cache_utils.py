@@ -1,7 +1,7 @@
 import hashlib
 import os
 
-import diskcache
+from lsm import LSM
 import requests
 from scrapy.extensions.httpcache import FilesystemCacheStorage
 from tqdm import tqdm
@@ -59,8 +59,8 @@ class DownloadCacheStorage(FilesystemCacheStorage):
 class DiskCacheManager(object):
     @classmethod
     def get(cls, name):
-        path = settings.DISK_CACHE_ROOT + name + '.dc'
-        return diskcache.Cache(path)
+        path = settings.DISK_CACHE_ROOT + name + '.ldb'
+        return LSM(path)
 
     @classmethod
     def update(cls, name, **kwargs):
@@ -69,5 +69,5 @@ class DiskCacheManager(object):
         data = fn(**kwargs)
         cache = cls.get(name)
         if cfg['type'] == 'set':
-            for item in tqdm(data, desc='updating diskcache:%s' % name):
-                cache[item] = True
+            items = tqdm(data, desc='updating diskcache:%s' % name)
+            cache.update({item: True for item in items})

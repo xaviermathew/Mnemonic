@@ -25,7 +25,6 @@ constantly==15.1.0
 cryptography==2.9.2
 cssselect==1.1.0
 decorator==4.4.2
-diskcache==5.2.1
 Django==3.0.7
 django-cors-headers==3.4.0
 django-extensions==2.2.9
@@ -60,6 +59,7 @@ jinja2-time==0.2.0
 jmespath==0.10.0
 joblib==0.14.1
 kombu==4.6.8
+lsm-db==0.6.4
 lxml==4.5.0
 MarkupSafe==1.1.1
 msgpack==1.0.2
