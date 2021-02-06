@@ -5,5 +5,6 @@ SHELL=/bin/bash
 # 00 00 * * 0 cd /home/ubuntu/virtual_env/mnemonic/bin/ && source activate && source postactivate && make backup_article_cache > logs/backup_article_cache.log 2>&1
 
 00 * * * * cd /home/ubuntu/virtual_env/mnemonic/bin/ && source activate && source postactivate && python manage.py import_feeds_from_google_sheet > logs/import_feeds_from_google_sheet.log 2>&1
+00 3 * * * cd /home/ubuntu/virtual_env/mnemonic/bin/ && source activate && source postactivate && python manage.py update_disk_caches --since-hours 24 > logs/update_disk_caches.log 2>&1
 00 4 * * * cd /home/ubuntu/virtual_env/mnemonic/bin/ && source activate && source postactivate && python manage.py crawl_tweets --since-hours 24 > logs/crawl_tweets.log 2>&1
 30 * * * * cd /home/ubuntu/virtual_env/mnemonic/bin/ && source activate && source postactivate && python manage.py crawl_feeds > logs/crawl_feeds.log 2>&1
