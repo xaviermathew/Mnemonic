@@ -15,8 +15,7 @@ DJANGO_SETTINGS_MODULE=mnemonic.core.settings $VIRTUALENV_BIN/celery multi ${1} 
     --without-gossip --without-mingle --without-heartbeat \
     --pool=solo \
     -Q:1 T_crawl_feed,T_process_article \
-    -c:1 1 \
-    --prefetch-multiplier=100
+    -c:1 1
 
 
 DJANGO_SETTINGS_MODULE=mnemonic.core.settings $VIRTUALENV_BIN/celery multi ${1} \
