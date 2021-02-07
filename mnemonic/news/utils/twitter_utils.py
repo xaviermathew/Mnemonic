@@ -1,6 +1,7 @@
 from retry import retry
 import twint
 from twint.tweet import tweet as Tweet
+from tqdm import tqdm
 
 from django.conf import settings
 
@@ -26,6 +27,7 @@ def update_seen_tweets_disk_cache(since=None):
 
 class CrawlBuffer(object):
     def __init__(self, signature_parts, only_new=True):
+        self.id = '_'.join(signature_parts)
         self.fname = get_crawl_fname('state/twint/results_%s.msgpack', signature_parts)
         self.file = open(self.fname, 'ab')
         self.only_new = only_new
@@ -39,11 +41,14 @@ class CrawlBuffer(object):
         self.file.flush()
         self.file.close()
         data = streaming_loads(open(self.fname, 'rb'))
-        for d in data:
+        for d in tqdm(data, desc='reading tweets:%s' % self.id):
             if self.only_new and d['id'] in self.seen:
                 continue
             t = Tweet()
-            t.__dict__.update(d)
+            for k, v in d.items():
+                if isinstance(v, str):
+                    v = v.replace('\u0000', '')
+                t.__dict__[k] = v
             yield t
 
 
