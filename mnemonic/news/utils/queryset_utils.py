@@ -29,8 +29,9 @@ class CachedManager(models.Manager):
 
 
 def bulk_create(objs, should_bulk_create=True):
-    model = objs[0].__class__
+    from mnemonic.news.utils.iter_utils import get_first
 
+    model = get_first(objs).__class__
     if should_bulk_create:
         model.objects.bulk_create(objs, ignore_conflicts=True)
     else:

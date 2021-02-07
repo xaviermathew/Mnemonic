@@ -3,7 +3,7 @@ import itertools
 
 def get_first(iterable):
     first_el = next(iterable)
-    yield first_el, itertools.chain((first_el,), iterable)
+    return first_el, itertools.chain((first_el,), iterable)
 
 
 def chunkify(iterable, chunksize):
