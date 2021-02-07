@@ -19,7 +19,7 @@ def update_seen_tweets_disk_cache(since=None):
 
     filters = {}
     if since:
-        filters['published_on__gte'] = since
+        filters['created_on__gte'] = since
     qs = Tweet.objects.filter(**filters).values_list('tweet_id', flat=True)
     return qs.iterator()
 
