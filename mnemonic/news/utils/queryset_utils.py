@@ -29,24 +29,11 @@ class CachedManager(models.Manager):
 
 
 def bulk_create(objs, should_bulk_create=True):
-    if not isinstance(objs, list):
-        objs = list(objs)
     model = objs[0].__class__
 
-    conflicts = False
     if should_bulk_create:
-        try:
-            model.objects.bulk_create(objs)
-        except IntegrityError as ex:
-            if 'duplicate key value violates unique constraint' in ex.args[0]:
-                _LOG.info('bulk create on [%s] with [%s] objects failed.', model, len(objs))
-                conflicts = True
-            else:
-                raise ex
-        else:
-            _LOG.info('bulk create on [%s] with [%s] objects succeeded', model, len(objs))
-
-    if not should_bulk_create or conflicts:
+        model.objects.bulk_create(objs, ignore_conflicts=True)
+    else:
         for obj in tqdm(objs, desc='bulk_create_fallback:%s' % model):
             try:
                 obj.save()
