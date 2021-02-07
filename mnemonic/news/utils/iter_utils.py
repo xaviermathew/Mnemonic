@@ -2,8 +2,11 @@ import itertools
 
 
 def get_first(iterable):
-    first_el = next(iterable)
-    return first_el, itertools.chain((first_el,), iterable)
+    if isinstance(iterable, list):
+        return iterable[0], iterable
+    else:
+        first_el = next(iterable)
+        return first_el, itertools.chain((first_el,), iterable)
 
 
 def chunkify(iterable, chunksize):

@@ -47,7 +47,8 @@ class TwitterMixin(EntityBase):
         tweets = (self._process_tweet(t, mentions) for t in tweets)
 
         for chunk in chunkify(tweets, 5000):
-            chunk = bulk_create(chunk, should_bulk_create=False)
+            chunk = list(chunk)
+            bulk_create(chunk, should_bulk_create=False)
             for t in chunk:
                 #  only process rows with a pk, ie., new rows
                 if t.pk is not None:

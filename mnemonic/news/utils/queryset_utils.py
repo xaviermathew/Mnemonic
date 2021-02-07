@@ -43,4 +43,3 @@ def bulk_create(objs, should_bulk_create=True):
                     _LOG.info('[%s] obj already exists', model)
                 else:
                     raise ex
-    return objs
