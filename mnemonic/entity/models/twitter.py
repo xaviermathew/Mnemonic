@@ -47,9 +47,11 @@ class TwitterMixin(EntityBase):
         tweets = (self._process_tweet(t, mentions) for t in tweets)
 
         for chunk in chunkify(tweets, 5000):
-            chunk = bulk_create(chunk)
+            chunk = bulk_create(chunk, should_bulk_create=False)
             for t in chunk:
-                t.process_async()
+                #  only process rows with a pk, ie., new rows
+                if t.pk is not None:
+                    t.process()
 
     def crawl_tweets(self, limit=None, since=None, until=None, mentions=None, only_cached=False):
         if self.twitter_handle is None:

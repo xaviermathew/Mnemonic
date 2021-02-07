@@ -28,26 +28,31 @@ class CachedManager(models.Manager):
         return obj
 
 
-def bulk_create(objs):
+def bulk_create(objs, should_bulk_create=True):
     if not isinstance(objs, list):
         objs = list(objs)
     model = objs[0].__class__
-    try:
-        model.objects.bulk_create(objs)
-    except IntegrityError as ex:
-        if 'duplicate key value violates unique constraint' in ex.args[0]:
-            _LOG.info('bulk create on [%s] with [%s] objects failed. retrying 1 at a time...',
-                      model, len(objs))
-            for obj in tqdm(objs, desc='bulk_create_fallback:' % model):
-                try:
-                    obj.save()
-                except IntegrityError as ex:
-                    if 'duplicate key value violates unique constraint' in ex.args[0]:
-                        _LOG.info('[%s] obj already exists', model)
-                    else:
-                        raise ex
+
+    conflicts = False
+    if should_bulk_create:
+        try:
+            model.objects.bulk_create(objs)
+        except IntegrityError as ex:
+            if 'duplicate key value violates unique constraint' in ex.args[0]:
+                _LOG.info('bulk create on [%s] with [%s] objects failed.', model, len(objs))
+                conflicts = True
+            else:
+                raise ex
         else:
-            raise ex
-    else:
-        _LOG.info('bulk create on [%s] with [%s] objects succeeded', model, len(objs))
+            _LOG.info('bulk create on [%s] with [%s] objects succeeded', model, len(objs))
+
+    if not should_bulk_create or conflicts:
+        for obj in tqdm(objs, desc='bulk_create_fallback:%s' % model):
+            try:
+                obj.save()
+            except IntegrityError as ex:
+                if 'duplicate key value violates unique constraint' in ex.args[0]:
+                    _LOG.info('[%s] obj already exists', model)
+                else:
+                    raise ex
     return objs
