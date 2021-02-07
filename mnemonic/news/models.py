@@ -188,9 +188,3 @@ class Tweet(BaseModel, NewsIndexable):
             self.is_pushed_to_index = True
             self.save(update_fields=['is_pushed_to_index'])
             _LOG.info('processed tweet:[%s][%s]', self.pk, self.tweet_id)
-
-    def process_async(self):
-        from mnemonic.news.tasks import process_tweet_async
-        process_tweet_async.apply_async(kwargs={'tweet_id': self.pk},
-                                          queue=settings.CELERY_TASK_QUEUE_PROCESS_TWEET,
-                                          routing_key=settings.CELERY_TASK_ROUTING_KEY_PROCESS_TWEET)

@@ -15,11 +15,3 @@ def process_article_async(article_id):
 
     article = Article.objects.get(pk=article_id)
     article.process()
-
-
-@celery_app.task(ignore_result=True)
-def process_tweet_async(tweet_id):
-    from mnemonic.news.models import Tweet
-
-    tweet = Tweet.objects.get(pk=tweet_id)
-    tweet.process()

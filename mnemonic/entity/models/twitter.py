@@ -17,8 +17,24 @@ class TwitterMixin(EntityBase):
     class Meta:
         abstract = True
 
-    def _crawl_tweets(self, limit=None, since=None, until=None, mentions=False, only_cached=False):
+    def _process_tweet(self, tweet, mentions):
         from mnemonic.news.models import Tweet
+
+        non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
+        if isinstance(tweet.datetime, int):
+            published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
+        else:
+            published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
+        metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
+        return Tweet(entity=None if mentions else self,
+                     tweet_id=tweet.id,
+                     tweet=tweet.tweet,
+                     published_on=published_on,
+                     metadata=metadata)
+
+    def _crawl_tweets(self, limit=None, since=None, until=None, mentions=False, only_cached=False):
+        from mnemonic.news.utils.iter_utils import chunkify
+        from mnemonic.news.utils.queryset_utils import bulk_create
         from mnemonic.news.utils.twitter_utils import get_tweets_for_username
 
         tweets = get_tweets_for_username(self.twitter_handle,
@@ -28,26 +44,11 @@ class TwitterMixin(EntityBase):
                                          language='en' if mentions else None,
                                          mentions=mentions,
                                          only_cached=only_cached)
-        non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
-        for tweet in tweets:
-            if isinstance(tweet.datetime, int):
-                published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
-            else:
-                published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
-            metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
-            try:
-                t = Tweet.objects.create(entity=None if mentions else self,
-                                         tweet_id=tweet.id,
-                                         tweet=tweet.tweet,
-                                         published_on=published_on,
-                                         metadata=metadata)
-            except IntegrityError as ex:
-                if 'duplicate key value violates unique constraint' in ex.args[0]:
-                    _LOG.info('Tweet with id:[%s] already exists', tweet.id)
-                else:
-                    raise ex
-            else:
-                _LOG.info('Tweet created with id:[%s]', tweet.id)
+        tweets = (self._process_tweet(t, mentions) for t in tweets)
+
+        for chunk in chunkify(tweets, 5000):
+            chunk = bulk_create(chunk)
+            for t in chunk:
                 t.process_async()
 
     def crawl_tweets(self, limit=None, since=None, until=None, mentions=None, only_cached=False):
