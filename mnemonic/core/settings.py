@@ -185,7 +185,7 @@ CELERY_BROKER_HEARTBEAT = None # We're using TCP keep-alive instead
 CELERY_BROKER_CONNECTION_TIMEOUT = 30 # May require a long timeout due to Linux DNS timeouts etc
 CELERY_RESULT_BACKEND = None # AMQP is not recommended as result backend as it creates thousands of queues
 CELERY_EVENT_QUEUE_EXPIRES = 60 # Will delete all celeryev. queues without consumers after 1 minute.
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1 # Disable prefetching, it's causes problems and doesn't help performance
+# CELERY_WORKER_PREFETCH_MULTIPLIER = 1 # Disable prefetching, it's causes problems and doesn't help performance
 CELERY_IGNORE_RESULT = True
 
 from ..news.utils.msgpack_utils import loads, dumps
