@@ -36,18 +36,18 @@ def filter_values(s, field_name, values):
     return s
 
 
-def get_search_results(query=None, source_types=None, newspapers=None, twitter_handles=None,
+def get_search_results(query=None, news_types=None, newspapers=None, twitter_handles=None,
                        twitter_mentions=None, start_date=None, end_date=None):
     s = get_client()
     if query and query[0]:
         s = s.filter("simple_query_string", query=query[0], fields=['title', 'body'])
-    if source_types:
-        s = filter_values(s, 'source_type', source_types)
+    if news_types:
+        s = filter_values(s, 'news_type.raw', news_types)
     if newspapers or twitter_handles:
         sources = (newspapers or []) + (twitter_handles or [])
-        s = filter_values(s, 'source', sources)
+        s = filter_values(s, 'source.raw', sources)
     if twitter_mentions:
-        s = filter_values(s, 'mentions', twitter_mentions)
+        s = filter_values(s, 'mentions.raw', twitter_mentions)
     if (start_date and start_date[0]) or (end_date and end_date[0]):
         published_on = {}
         if start_date and start_date[0]:

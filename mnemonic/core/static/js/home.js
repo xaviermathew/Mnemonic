@@ -4,14 +4,14 @@ $(document).ready(function() {
     $('#select_source_types').change(function() {
         var el = $(this);
         var value = el.val();
-        if (value.indexOf('NewsSource') == -1) {
+        if (value.indexOf('news') == -1) {
             $('#select_newspapers').val([]);
             $('#select_newspapers').change();
             $('#select_newspapers').prop('disabled', true);
         } else {
             $('#select_newspapers').prop('disabled', false);
         }
-        if (value.indexOf('Person') == -1) {
+        if (value.indexOf('tweet') == -1) {
             $('#select_twitter_handles').val([]);
             $('#select_twitter_handles').change();
             $('#select_twitter_handles').prop('disabled', true);
@@ -23,4 +23,5 @@ $(document).ready(function() {
             $('#select_twitter_mentions').prop('disabled', false);
         }
     });
+    $('#select_source_types').change();
 });
