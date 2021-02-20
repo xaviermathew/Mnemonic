@@ -35,6 +35,7 @@ PROJECT_APPS = [
     'mnemonic.core',
     'mnemonic.entity',
     'mnemonic.news',
+    'mnemonic.stories',
 ]
 THIRD_PARTY_APPS = [
     'rest_framework',
@@ -84,15 +85,23 @@ WSGI_APPLICATION = 'mnemonic.core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
+REDASH_DATABASE = 'redash'
+REDASH_DASHBOARD_URL = 'http://localhost:5000/public/dashboards/'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'mnemonic',
         'USER': 'mnemonic',
         'PASSWORD': 'mnemonic',
+    },
+    REDASH_DATABASE: {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': REDASH_DATABASE,
+        'USER': 'mnemonic',
+        'PASSWORD': 'mnemonic',
     }
 }
-
+DATABASE_ROUTERS = ('mnemonic.core.db_routers.DBRouter',)
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators

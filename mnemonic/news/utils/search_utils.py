@@ -1,7 +1,8 @@
 import copy
+from datetime import datetime
 import itertools
 
-from elasticsearch_dsl import Search
+from elasticsearch_dsl import Search, Q
 from elasticsearch_dsl.connections import connections
 
 from django.conf import settings
@@ -25,12 +26,37 @@ def serialize_search_results(results):
     for result in results:
         d = copy.deepcopy(result._d_)
         d['meta'] = copy.deepcopy(result.meta._d_)
+        if 'published_on' in d:
+            d['published_on'] = datetime.fromisoformat(d['published_on'])
         yield d
 
 
-def get_search_results(q):
-    client = get_client()
-    s = client.filter("simple_query_string", query=q, fields=['title', 'source', 'body'])
+def filter_values(s, field_name, values):
+    q_set = [Q('match', **{field_name: v}) for v in values]
+    s = s.query('bool', should=q_set)
+    return s
+
+
+def get_search_results(query=None, source_types=None, newspapers=None, twitter_handles=None,
+                       twitter_mentions=None, start_date=None, end_date=None):
+    s = get_client()
+    if query:
+        s = s.filter("simple_query_string", query=query[0], fields=['title', 'body'])
+    if source_types:
+        s = filter_values(s, 'source_type', source_types)
+    if newspapers or twitter_handles:
+        sources = (newspapers or []) + (twitter_handles or [])
+        s = filter_values(s, 'source', sources)
+    if twitter_mentions:
+        s = filter_values(s, 'mentions', twitter_mentions)
+    if (start_date and start_date[0]) or (end_date and end_date[0]):
+        published_on = {}
+        if start_date and start_date[0]:
+            published_on['gte'] = start_date[0]
+        if end_date and end_date[0]:
+            published_on['lte'] = end_date[0]
+        s = s.query('range', published_on=published_on)
+
     results = itertools.islice(s.scan(), 500)
     serialized = serialize_search_results(results)
     return s.count(), serialized

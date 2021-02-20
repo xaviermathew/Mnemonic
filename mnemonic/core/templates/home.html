@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mnemonic-header px-3 py-3 pt-md-5 pb-md-4 mx-auto">
+  <p class="lead text-center">Search for topics across {{ num_docs }} news articles and tweets.</p>
+  <form method="get" action="/">
+    <div class="form-group has-search">
+      <span class="fa fa-search form-control-feedback"></span>
+      <input type="text" class="form-control form-control-lg" name="query" value="{{ query.0 }}" placeholder="Search">
+    </div>
+
+    <div class="form-group collapse" id="collapseExample">
+      <div class="card card-body">
+        <div class="form-group">
+          <label for="select_source_types">Search across</label>
+          <select class="form-control" id="select_source_types" name="source_types" multiple>
+            <option value="NewsSource" {% if 'NewsSource' in source_types %}selected{% endif %}>News articles</option>
+            <option value="Person" {% if 'Person' in source_types %}selected{% endif %}>Tweets</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="select_newspapers">Newspapers</label>
+          <select class="form-control" id="select_newspapers" name="newspapers" multiple>
+            {% for op in newspapers_options %}
+            <option value="{{ op.value }}" {% if op.value in newspapers %}selected{% endif %}>{{ op.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="select_twitter_handles">Twitter handles</label>
+          <select class="form-control" id="select_twitter_handles" name="twitter_handles" multiple>
+            {% for op in twitter_handles_options %}
+            <option value="{{ op.value }}" {% if op.value in twitter_handles %}selected{% endif %}>{{ op.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="select_twitter_mentions">Twitter mentions</label>
+          <select class="form-control" id="select_twitter_mentions" name="twitter_mentions" multiple>
+            {% for op in twitter_mentions_options %}
+            <option value="{{ op.value }}" {% if op.value in twitter_mentions %}selected{% endif %}>{{ op.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="date_start_date">When</label>
+          <input type="date" class="form-control" id="date_start_date" name="start_date" value="{{ start_date.0 }}">
+          <input type="date" class="form-control" id="date_end_date" name="end_date" value="{{ end_date.0 }}">
+        </div>
+      </div>
+    </div>
+    <p class="text-center">
+      <button class="btn btn-primary" type="submit" data-toggle="collapse" role="button" aria-expanded="false">
+        Search
+      </button>
+      <button class="btn" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+        Refine
+      </button>
+    </p>
+  </form>
+</div>
+
+{% if has_query %}
+<div class="row px-3 py-3 pt-md-5 pb-md-4 mx-auto mnemonic-results">
+  <p class="text-right">Found {{ num_results }} result(s)</p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Published on</th>
+        <th scope="col">Source</th>
+        <th scope="col">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for result in results %}
+      <tr>
+        <td>{{ result.published_on|date:"Y-m-d" }}</td>
+        <td>{{ result.source }}</td>
+        <td><a href="{{ result.url }}">{{ result.title }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="/static/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/select2.min.js"></script>
+<script src="/static/js/home.js"></script>
+{% endblock %}

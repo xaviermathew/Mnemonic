@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mnemonic-header px-3 py-3 pt-md-5 pb-md-4 mx-auto">
+  <div class="list-group">
+    {% for s in stories %}
+    <a href="{% url 'story_url' slug=s.slug %}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h4>{{ s.cleaned_name }}</h4>
+            <small>{{ s.updated_at|date:"Y-m-d" }}</small>
+        </div>
+        <p>{{ s.description }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
