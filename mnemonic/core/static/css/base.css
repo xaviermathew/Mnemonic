@@ -42,3 +42,9 @@ html {
 .select2 {
     width: 100% !important
 }
+.select2 {
+    width: 100% !important;
+}
+a.active {
+    color: #0056b3 !important;
+}

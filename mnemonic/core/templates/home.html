@@ -13,7 +13,7 @@
       <div class="card card-body">
         <div class="form-group">
           <label for="select_source_types">Search across</label>
-          <select class="form-control" id="select_source_types" name="source_types" multiple>
+          <select class="form-control" id="select_source_types" name="source_types" multiple required>
             <option value="NewsSource" {% if 'NewsSource' in source_types %}selected{% endif %}>News articles</option>
             <option value="Person" {% if 'Person' in source_types %}selected{% endif %}>Tweets</option>
           </select>
@@ -66,7 +66,7 @@
 
 {% if has_query %}
 <div class="row px-3 py-3 pt-md-5 pb-md-4 mx-auto mnemonic-results">
-  <p class="text-right">Found {{ num_results }} result(s)</p>
+  <p class="text-right">Found {{ num_results }} result(s).{% if num_results > 100 %} Showing latest 100.{% endif %}</p>
   <table class="table">
     <thead>
       <tr>

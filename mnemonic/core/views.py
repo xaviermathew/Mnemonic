@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 
 def qs_to_options(qs, label_field, value_field):
@@ -17,15 +17,15 @@ def home(request):
     from mnemonic.news.utils.search_utils import get_search_results, get_client
 
     twitter_users = qs_to_options(Person.objects.all(), 'name', 'name')
+    has_query = any(v for v in request.GET.values())
     ctx = {
         'num_docs': get_client().count(),
         'newspapers_options': qs_to_options(NewsSource.objects.all(), 'name', 'name'),
         'twitter_handles_options': twitter_users,
         'twitter_mentions_options': twitter_users,
-        'has_query': any(v for v in request.GET.values())
+        'has_query': has_query
     }
-    q = request.GET.get('query')
-    if q:
+    if has_query:
         ctx.update(request.GET)
         ctx['num_results'], ctx['results'] = get_search_results(**request.GET)
     return render(request, 'home.html', ctx)
@@ -49,7 +49,8 @@ def stories(request):
 def story(request, slug):
     from mnemonic.stories.models import Dashboard
 
+    qs = Dashboard.objects.filter(name__startswith='Story:', is_archived=False, is_draft=False, slug=slug)
     ctx = {
-        'story': Dashboard.objects.get(name__startswith='Story:', is_archived=False, is_draft=False, slug=slug)
+        'story': get_object_or_404(qs)
     }
     return render(request, 'story.html', ctx)

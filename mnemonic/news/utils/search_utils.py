@@ -1,6 +1,5 @@
 import copy
 from datetime import datetime
-import itertools
 
 from elasticsearch_dsl import Search, Q
 from elasticsearch_dsl.connections import connections
@@ -40,7 +39,7 @@ def filter_values(s, field_name, values):
 def get_search_results(query=None, source_types=None, newspapers=None, twitter_handles=None,
                        twitter_mentions=None, start_date=None, end_date=None):
     s = get_client()
-    if query:
+    if query and query[0]:
         s = s.filter("simple_query_string", query=query[0], fields=['title', 'body'])
     if source_types:
         s = filter_values(s, 'source_type', source_types)
@@ -57,6 +56,6 @@ def get_search_results(query=None, source_types=None, newspapers=None, twitter_h
             published_on['lte'] = end_date[0]
         s = s.query('range', published_on=published_on)
 
-    results = itertools.islice(s.scan(), 500)
-    serialized = serialize_search_results(results)
+    s = s.sort('-published_on')
+    serialized = serialize_search_results(s[:100])
     return s.count(), serialized
