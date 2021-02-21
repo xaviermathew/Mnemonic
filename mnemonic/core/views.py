@@ -74,7 +74,7 @@ def person(request, pk):
     from mnemonic.entity.models import Person
     from mnemonic.stories.models import Dashboard
 
-    dashboard_qs = Dashboard.objects.filter(name='Person profile', is_archived=False, is_draft=False)
+    dashboard_qs = Dashboard.all_objects.filter(name='Person profile', is_archived=False, is_draft=False)
     person_qs = Person.objects.filter(pk=pk)
     person = get_object_or_404(person_qs)
     ctx = {

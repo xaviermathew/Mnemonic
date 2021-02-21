@@ -14,6 +14,7 @@ class DashboardManager(models.Manager):
 class Dashboard(models.Model):
     use_db = settings.REDASH_DATABASE
     objects = DashboardManager()
+    all_objects = models.Manager()
 
     class Meta:
         managed = False
