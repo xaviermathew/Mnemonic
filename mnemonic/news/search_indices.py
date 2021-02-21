@@ -3,6 +3,7 @@ from django.core.validators import EMPTY_VALUES
 
 from elasticsearch_dsl import Document, analyzer, Text, Date, Keyword
 from elasticsearch_dsl.connections import connections
+from retry import retry
 
 from mnemonic.news.utils.string_utils import get
 
@@ -56,5 +57,10 @@ class NewsIndexable(object):
         return {k: v for k,v in d.items() if v not in EMPTY_VALUES}
 
     def push_to_index(self):
+
+        @retry(tries=10, delay=1, backoff=2)
+        def f(obj):
+            obj.save()
+
         news = News(meta=self.get_index_meta_data(), **self.get_index_data())
-        news.save()
+        f(news)
