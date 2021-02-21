@@ -1,3 +1,5 @@
+import urllib.parse
+
 from django.shortcuts import render, get_object_or_404
 
 
@@ -56,4 +58,28 @@ def story(request, slug):
     ctx = {
         'story': get_object_or_404(qs)
     }
-    return render(request, 'story.html', ctx)
+    return render(request, 'dashboard.html', ctx)
+
+
+def people(request):
+    from mnemonic.entity.models import Person
+
+    ctx = {
+        'people': Person.objects.all()
+    }
+    return render(request, 'people.html', ctx)
+
+
+def person(request, pk):
+    from mnemonic.entity.models import Person
+    from mnemonic.stories.models import Dashboard
+
+    dashboard_qs = Dashboard.objects.filter(name='Person profile', is_archived=False, is_draft=False)
+    person_qs = Person.objects.filter(pk=pk)
+    person = get_object_or_404(person_qs)
+    ctx = {
+        'person': person,
+        'story': get_object_or_404(dashboard_qs),
+        'params': urllib.parse.urlencode({'p_twitter_handle': person.name})
+    }
+    return render(request, 'dashboard.html', ctx)

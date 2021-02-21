@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mnemonic-header px-3 py-3 pt-md-5 pb-md-4 mx-auto">
+  <div class="list-group">
+    {% for p in people %}
+    <a href="{% url 'person_url' pk=p.id %}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h4>{{ p.name }}</h4>
+        </div>
+        {% comment %}<p>{{ p.description }}</p>{% endcomment %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

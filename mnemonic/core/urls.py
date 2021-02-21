@@ -35,6 +35,8 @@ urlpatterns = [
     url(r'^$', views.home),
     url(r'^stories/$', views.stories),
     path(r'stories/<slug:slug>/', views.story, name='story_url'),
+    url(r'^people/$', views.people),
+    path(r'people/<int:pk>/', views.person, name='person_url'),
     url(r'^about/$', views.about),
     url(r'^admin/', admin.site.urls),
     re_path(r'^%s(?P<path>.*)$' % re.escape(settings.STATIC_URL.lstrip('/')),
