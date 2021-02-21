@@ -1,7 +1,7 @@
 $(document).ready(function() {
     $('select').select2();
 
-    $('#select_source_types').change(function() {
+    $('#select_news_types').change(function() {
         var el = $(this);
         var value = el.val();
         if (value.indexOf('news') == -1) {
@@ -23,5 +23,6 @@ $(document).ready(function() {
             $('#select_twitter_mentions').prop('disabled', false);
         }
     });
-    $('#select_source_types').change();
+    $('#select_news_types').val(['news', 'tweet']);
+    $('#select_news_types').change();
 });
