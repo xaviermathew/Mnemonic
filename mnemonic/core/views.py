@@ -65,7 +65,7 @@ def people(request):
     from mnemonic.entity.models import Person
 
     ctx = {
-        'people': Person.objects.all()
+        'people': Person.objects.order_by('name')
     }
     return render(request, 'people.html', ctx)
 
