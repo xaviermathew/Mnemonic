@@ -1,13 +1,20 @@
 import datetime
+import logging
 
 import msgpack
+
+_LOG = logging.getLogger(__name__)
 
 
 def decode_datetime(obj):
     if '__datetime__' in obj:
-        if isinstance(obj['as_str'], bytes):
-            obj['as_str'] = str(obj['as_str'])
-        obj = datetime.datetime.strptime(obj['as_str'], "%Y%m%dT%H:%M:%S.%f")
+        try:
+            if isinstance(obj['as_str'], bytes):
+                obj['as_str'] = obj['as_str'].decode('utf-8')
+            obj = datetime.datetime.strptime(obj['as_str'], "%Y%m%dT%H:%M:%S.%f")
+        except Exception as ex:
+            _LOG.warning('error decoding datetime:%s - %s', obj, ex)
+            obj = None
     return obj
 
 
