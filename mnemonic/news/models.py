@@ -122,10 +122,10 @@ class Article(BaseModel, NewsIndexable):
         if self.body is None:
             self.body = get_body_from_article(self.url)
             save_fields.append('body')
-        if not self.is_pushed_to_index:
-            self.push_to_index()
-            self.is_pushed_to_index = True
-            save_fields.append('is_pushed_to_index')
+        # if not self.is_pushed_to_index:
+        #     self.push_to_index()
+        #     self.is_pushed_to_index = True
+        #     save_fields.append('is_pushed_to_index')
         if save_fields:
             self.save(update_fields=save_fields)
             _LOG.info('article:[%s] - processed url:[%s]', self.pk, self.url)
