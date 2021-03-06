@@ -34,3 +34,33 @@ def loads(packed_string, **kwargs):
 
 def streaming_loads(stream, **kwargs):
     return msgpack.Unpacker(stream, raw=False, object_hook=decode_datetime, **kwargs)
+
+
+def streaming_loads2(stream, **kwargs):
+    """
+    wrapper around streaming_loads() that doesnt break on errors
+    """
+
+    input_data = streaming_loads(stream, unicode_errors='replace', **kwargs)
+    while True:
+        try:
+            value = next(input_data)
+        except ValueError:
+            print('error reading entry. scanning for next good item...')
+            input_data.skip()
+            while True:
+                try:
+                    skip_value = next(input_data)
+                except StopIteration:
+                    return
+                else:
+                    if isinstance(skip_value, dict):
+                        print('found good entry')
+                        yield skip_value
+                        break
+                    else:
+                        print('skip partial entry', skip_value)
+        except StopIteration:
+            return
+        else:
+            yield value

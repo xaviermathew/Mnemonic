@@ -44,6 +44,7 @@ class TwitterMixin(EntityBase):
                                          language='en' if mentions else None,
                                          mentions=mentions,
                                          only_cached=only_cached)
+        return
         tweets = (self._process_tweet(t, mentions) for t in tweets)
 
         for chunk in chunkify(tweets, 5000):
