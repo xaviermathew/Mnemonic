@@ -1,12 +1,10 @@
-from datetime import datetime
 import logging
-import pytz
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db import models, IntegrityError
+from django.db import models
 
-from .base import EntityBase
+from mnemonic.entity.models.base import EntityBase
 
 _LOG = logging.getLogger(__name__)
 
@@ -17,43 +15,29 @@ class TwitterMixin(EntityBase):
     class Meta:
         abstract = True
 
-    def _process_tweet(self, tweet, mentions):
-        from mnemonic.news.models import Tweet
-
-        non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
-        if isinstance(tweet.datetime, int):
-            published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
-        else:
-            published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
-        metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
-        return Tweet(entity=None if mentions else self,
-                     tweet_id=tweet.id,
-                     tweet=tweet.tweet,
-                     published_on=published_on,
-                     metadata=metadata)
-
     def _crawl_tweets(self, limit=None, since=None, until=None, mentions=False, only_cached=False):
-        from mnemonic.news.utils.iter_utils import chunkify
-        from mnemonic.news.utils.queryset_utils import bulk_create
-        from mnemonic.news.utils.twitter_utils import get_tweets_for_username
+        from mnemonic.news.models import TwitterJob
+        from mnemonic.news.utils.twitter_utils import CrawlBuffer
 
-        tweets = get_tweets_for_username(self.twitter_handle,
-                                         limit=limit,
-                                         since=since,
-                                         until=until,
-                                         language='en' if mentions else None,
-                                         mentions=mentions,
-                                         only_cached=only_cached)
-        return
-        tweets = (self._process_tweet(t, mentions) for t in tweets)
-
-        for chunk in chunkify(tweets, 5000):
-            chunk = list(chunk)
-            bulk_create(chunk, should_bulk_create=False)
-            for t in chunk:
-                #  only process rows with a pk, ie., new rows
-                if t.pk is not None:
-                    t.process()
+        cb = CrawlBuffer(self.twitter_handle,
+                         limit=limit,
+                         since=since,
+                         until=until,
+                         mentions=mentions,
+                         language='en' if mentions else None,
+                         only_cached=only_cached)
+        tj, _ = TwitterJob.objects.get_or_create(
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.pk,
+            filters=cb.filters
+        )
+        if tj.is_crawled:
+            _LOG.info('%s is already crawled', tj)
+        else:
+            _LOG.info('starting twitter crawl for %s', tj)
+            cb.start_crawl()
+            tj.is_crawled = True
+            tj.save(update_fields=['is_crawled'])
 
     def crawl_tweets(self, limit=None, since=None, until=None, mentions=None, only_cached=False):
         if self.twitter_handle is None:

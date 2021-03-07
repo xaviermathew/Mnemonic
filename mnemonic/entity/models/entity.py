@@ -1,6 +1,6 @@
 import logging
 
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
@@ -17,14 +17,13 @@ class OrganizationType(EntityBase):
 
 class Organization(TwitterMixin):
     type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE)
-    tweets = GenericRelation('news.Tweet')
 
     def __str__(self):
         return '%s:%s' % (self.type, self.name)
 
 
 class Person(TwitterMixin):
-    tweets = GenericRelation('news.Tweet')
+    pass
 
 
 class RelationshipType(EntityBase):

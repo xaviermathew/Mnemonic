@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.contrib.contenttypes.models import ContentType
 
 from mnemonic.core.admin import BaseAdmin
-from mnemonic.news.models import Article, Feed, NewsSource, Tweet
+from mnemonic.news.models import Article, Feed, NewsSource, TwitterJob
 
 
 @admin.register(Article)
@@ -36,9 +36,9 @@ class TweetEntityFilter(admin.SimpleListFilter):
    _cached_lookups_map = None
 
    def _get_lookups(self):
-       ct_id_pairs = Tweet.objects.order_by('content_type', 'object_id')\
-                                  .distinct('content_type', 'object_id')\
-                                  .values_list('content_type', 'object_id')
+       ct_id_pairs = TwitterJob.objects.order_by('content_type', 'object_id')\
+                                       .distinct('content_type', 'object_id')\
+                                       .values_list('content_type', 'object_id')
        ct_id_map = defaultdict(set)
        for ct, id in ct_id_pairs:
            ct_id_map[ct].add(id)
@@ -64,7 +64,7 @@ class TweetEntityFilter(admin.SimpleListFilter):
        return queryset
 
 
-@admin.register(Tweet)
-class TweetAdmin(BaseAdmin):
-    list_display = ['entity', 'tweet', 'published_on']
-    list_filter = [TweetEntityFilter, 'published_on']
+@admin.register(TwitterJob)
+class TwitterJobAdmin(BaseAdmin):
+    list_display = ['entity', 'is_crawled', 'is_pushed_to_index', 'filters']
+    list_filter = [TweetEntityFilter, 'is_crawled', 'is_pushed_to_index']

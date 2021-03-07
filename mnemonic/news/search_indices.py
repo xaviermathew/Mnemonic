@@ -40,6 +40,9 @@ class NewsIndexable(object):
     INDEX_PUBLISHED_ON_FIELD = None
     INDEX_URL_FIELD = None
 
+    BULK_FETCH_CHUNK_SIZE = 10 * 1000
+    BULK_INDEX_CHUNK_SIZE = 10 * 1000
+
     def get_index_meta_data(self):
         return {'id': self.get_uid()}
 
@@ -64,3 +67,24 @@ class NewsIndexable(object):
 
         news = News(meta=self.get_index_meta_data(), **self.get_index_data())
         f(news)
+
+    @classmethod
+    def get_bulk_index_data(cls):
+        from django.db import models
+        from mnemonic.news.utils.queryset_utils import queryset_iterator
+
+        if issubclass(cls, models.Model):
+            qs = queryset_iterator(cls.objects.filter(is_pushed_to_index=False), chunksize=cls.BULK_FETCH_CHUNK_SIZE)
+            return (obj.get_index_data() for obj in qs)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def bulk_push_to_index(cls):
+        from elasticsearch.helpers import bulk
+        from mnemonic.news.utils.search_utils import get_connection
+
+        connection = get_connection()
+        data = cls.get_bulk_index_data()
+        objects = (News.create(d).to_dict(include_meta=True) for d in data)
+        return bulk(connection, objects, chunk_size=cls.BULK_INDEX_CHUNK_SIZE)

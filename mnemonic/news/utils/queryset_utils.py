@@ -1,4 +1,5 @@
 from collections import defaultdict
+import gc
 import logging
 
 from tqdm import tqdm
@@ -43,3 +44,19 @@ def bulk_create(objs, should_bulk_create=True):
                     _LOG.info('[%s] obj already exists', model)
                 else:
                     raise ex
+
+
+def queryset_iterator(queryset, chunksize=10000, key=None):
+    # https://stackoverflow.com/a/47854200
+
+    key = [key] if isinstance(key, str) else (key or ['pk'])
+    counter = 0
+    count = chunksize
+    while count == chunksize:
+        offset = counter - counter % chunksize
+        count = 0
+        for item in queryset.all().order_by(*key)[offset:offset + chunksize]:
+            count += 1
+            yield item
+        counter += count
+        gc.collect()

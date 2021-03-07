@@ -1,11 +1,13 @@
 from __future__ import unicode_literals
 
-from time import mktime, struct_time
 from datetime import datetime
 import logging
+import pytz
+from time import mktime, struct_time
 import urllib.parse as urlparse
 
 import feedparser
+from tqdm import tqdm
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -142,49 +144,45 @@ class TwitterUser(object):
         self.name = name
 
 
-class Tweet(BaseModel, NewsIndexable):
-    INDEX_NEWS_TYPE_FIELD = 'news_type'
-    INDEX_SOURCE_FIELD = 'entity_proxy.name'
-    INDEX_SOURCE_TYPE_FIELD = 'entity_proxy.__class__.__name__'
-    INDEX_MENTIONS_FIELD = 'mentions'
-    INDEX_TITLE_FIELD = 'tweet'
-    INDEX_PUBLISHED_ON_FIELD = 'published_on'
-    INDEX_URL_FIELD = 'url'
-
+class TwitterJob(models.Model, NewsIndexable):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     entity = GenericForeignKey('content_type', 'object_id')
-    tweet_id = models.BigIntegerField(unique=True)
-    tweet = models.TextField()
-    published_on = models.DateTimeField()
-    metadata = JSONField()
+    filters = JSONField()
+    is_crawled = models.BooleanField(default=False)
     is_pushed_to_index = models.BooleanField(default=False)
 
-    @cached_property
-    def entity_proxy(self):
-        if self.object_id is not None and self.content_type_id is not None:
-            return self.content_type.model_class().objects.get(pk=self.object_id)
-        else:
-            return TwitterUser(self.metadata.get('name'))
-
-    @cached_property
-    def mentions(self):
-        return [d['name'] for d in self.metadata.get('reply_to', [])]
-
     def __str__(self):
-        return '%s: %s' % (self.entity, self.tweet)
+        return '<TwitterJob:%s - %s>' % (self.entity, self.filters)
 
-    @property
-    def news_type(self):
-        return 'tweet'
-
-    @property
-    def url(self):
-        return self.metadata['link']
-
-    def process(self):
-        if not self.is_pushed_to_index:
-            self.push_to_index()
-            self.is_pushed_to_index = True
-            self.save(update_fields=['is_pushed_to_index'])
-            _LOG.info('processed tweet:[%s][%s]', self.pk, self.tweet_id)
+    @classmethod
+    def get_bulk_index_data(cls):
+        qs = cls.objects.filter(is_pushed_to_index=False)
+        for tj in tqdm(qs, desc='indexing TwitterJobs'):
+            mentions = tj.filters.get('mentions')
+            if not mentions and tj.object_id is not None and tj.content_type_id is not None:
+                entity = tj.content_type.model_class().objects.get(pk=tj.object_id)
+            else:
+                entity = None
+            for tweet in tj.get_index_data():
+                if isinstance(tweet.datetime, int):
+                    published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
+                else:
+                    published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
+                non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
+                metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
+                if entity:
+                    source_type = entity.__class__.__name__
+                    source = entity.name
+                else:
+                    source_type = 'TwitterUser'
+                    source = metadata.get('name')
+                yield {
+                    'news_type': 'tweet',
+                    'source': source,
+                    'source_type': source_type,
+                    'mentions': [d['name'] for d in metadata.get('reply_to', [])],
+                    'title': tweet.tweet,
+                    'published_on': published_on,
+                    'url': metadata['link'],
+                }
