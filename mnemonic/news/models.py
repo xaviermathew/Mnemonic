@@ -124,10 +124,10 @@ class Article(BaseModel, NewsIndexable):
         if self.body is None:
             self.body = get_body_from_article(self.url)
             save_fields.append('body')
-        # if not self.is_pushed_to_index:
-        #     self.push_to_index()
-        #     self.is_pushed_to_index = True
-        #     save_fields.append('is_pushed_to_index')
+        if not self.is_pushed_to_index:
+            self.push_to_index()
+            self.is_pushed_to_index = True
+            save_fields.append('is_pushed_to_index')
         if save_fields:
             self.save(update_fields=save_fields)
             _LOG.info('article:[%s] - processed url:[%s]', self.pk, self.url)
@@ -148,41 +148,112 @@ class TwitterJob(models.Model, NewsIndexable):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     entity = GenericForeignKey('content_type', 'object_id')
-    filters = JSONField()
+    config = JSONField()
     is_crawled = models.BooleanField(default=False)
     is_pushed_to_index = models.BooleanField(default=False)
 
     def __str__(self):
-        return '<TwitterJob:%s - %s>' % (self.entity, self.filters)
+        return '<TwitterJob:%s - %s>' % (self.entity, self.cleaned_config)
+
+    @property
+    def cleaned_config(self):
+        defaults = {
+            'username': self.entity.twitter_handle,
+            'limit': None,
+            'since': None,
+            'until': None,
+            'mentions': None,
+            'language': 'en' if self.config.get('mentions') else None,
+            'only_cached': False,
+        }
+        defaults.update(self.config)
+        return defaults
+
+    def get_bulk_index_data_for_self(self):
+        mentions = self.cleaned_config['mentions']
+        if mentions:
+            entity = None
+        else:
+            entity = self.entity
+
+        for tweet in self.get_index_data():
+            if isinstance(tweet.datetime, int):
+                published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
+            else:
+                published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
+            non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
+            metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
+            if entity:
+                source_type = entity.__class__.__name__
+                source = entity.name
+            else:
+                source_type = 'TwitterUser'
+                source = metadata.get('name')
+            yield {
+                'news_type': 'tweet',
+                'source': source,
+                'source_type': source_type,
+                'mentions': [d['name'] for d in metadata.get('reply_to', [])],
+                'title': tweet.tweet,
+                'published_on': published_on,
+                'url': metadata['link'],
+            }
 
     @classmethod
     def get_bulk_index_data(cls):
         qs = cls.objects.filter(is_pushed_to_index=False)
         for tj in tqdm(qs, desc='indexing TwitterJobs'):
-            mentions = tj.filters.get('mentions')
-            if not mentions and tj.object_id is not None and tj.content_type_id is not None:
-                entity = tj.content_type.model_class().objects.get(pk=tj.object_id)
-            else:
-                entity = None
-            for tweet in tj.get_index_data():
-                if isinstance(tweet.datetime, int):
-                    published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
-                else:
-                    published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
-                non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
-                metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
-                if entity:
-                    source_type = entity.__class__.__name__
-                    source = entity.name
-                else:
-                    source_type = 'TwitterUser'
-                    source = metadata.get('name')
-                yield {
-                    'news_type': 'tweet',
-                    'source': source,
-                    'source_type': source_type,
-                    'mentions': [d['name'] for d in metadata.get('reply_to', [])],
-                    'title': tweet.tweet,
-                    'published_on': published_on,
-                    'url': metadata['link'],
-                }
+            yield from tj.get_bulk_index_data_for_self()
+
+    def bulk_push_to_index_for_self(self):
+        from elasticsearch.helpers import bulk
+        from mnemonic.news.search_indices import News
+        from mnemonic.news.utils.search_utils import get_connection
+
+        connection = get_connection()
+        data = self.get_bulk_index_data_for_self()
+        objects = (News.create(d).to_dict(include_meta=True) for d in data)
+        return bulk(connection, objects, chunk_size=self.BULK_INDEX_CHUNK_SIZE)
+
+    @property
+    def crawl_buffer(self):
+        from mnemonic.news.utils.twitter_utils import CrawlBuffer
+        return CrawlBuffer(**self.cleaned_config)
+
+    @classmethod
+    def create(cls, entity, **config):
+        filters = {}
+        ct = ContentType.objects.get_for_model(entity)
+        object_id = entity.pk
+        if config.get('since'):
+            config['since'] = config['since'].strftime('%Y-%m-%d')
+        if config.get('until'):
+            config['until'] = config['until'].strftime('%Y-%m-%d')
+        try:
+            tj = cls.objects.get(
+                content_type=ct,
+                object_id=object_id,
+                filters=filters
+            )
+        except cls.DoesNotExist:
+            tj = cls.objects.get_or_create(
+                content_type=ct,
+                object_id=object_id,
+                config=config,
+                foters=filters
+            )
+        if tj.is_crawled:
+            _LOG.info('%s is already crawled', tj)
+        else:
+            _LOG.info('starting twitter crawl for %s', tj)
+            tj.crawl_buffer.start_crawl()
+            tj.is_crawled = True
+            tj.save(update_fields=['is_crawled'])
+
+        if tj.is_pushed_to_index:
+            _LOG.info('%s is already indexed', tj)
+        else:
+            _LOG.info('indexing %s', tj)
+            tj.bulk_push_to_index_for_self()
+            tj.is_pushed_to_index = True
+            tj.save(update_fields=['is_pushed_to_index'])

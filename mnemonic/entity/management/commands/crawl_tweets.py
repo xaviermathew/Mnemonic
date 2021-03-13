@@ -7,8 +7,6 @@ from mnemonic.entity.models import Person
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument('--limit', default=None, type=int,
-                            help="How many tweets to crawl")
         parser.add_argument('--since-hours', default=None, type=int,
                             help="How many hours of tweets to crawl")
 
@@ -18,4 +16,4 @@ class Command(BaseCommand):
         else:
             since = None
         for person in Person.objects.all():
-            person.crawl_tweets_async(limit=options['limit'], since=since)
+            person.crawl_tweets_async(since=since)

@@ -66,5 +66,5 @@ class TweetEntityFilter(admin.SimpleListFilter):
 
 @admin.register(TwitterJob)
 class TwitterJobAdmin(BaseAdmin):
-    list_display = ['entity', 'is_crawled', 'is_pushed_to_index', 'filters']
+    list_display = ['entity', 'is_crawled', 'is_pushed_to_index', 'config']
     list_filter = [TweetEntityFilter, 'is_crawled', 'is_pushed_to_index']

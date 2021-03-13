@@ -6,9 +6,6 @@ import twint
 from twint.tweet import tweet as Tweet
 from tqdm import tqdm
 
-from django.conf import settings
-
-from mnemonic.news.utils.cache_utils import DiskCacheManager
 from mnemonic.news.utils.msgpack_utils import streaming_loads, dumps
 from mnemonic.news.utils.string_utils import slugify
 
@@ -20,36 +17,22 @@ def get_crawl_fname(prefix, signature_parts):
     return prefix % s
 
 
-# def update_seen_tweets_disk_cache(since=None):
-#     from mnemonic.news.models import Tweet
-#
-#     filters = {}
-#     if since:
-#         filters['created_on__gte'] = since
-#     qs = Tweet.objects.filter(**filters).values_list('tweet_id', flat=True)
-#     return qs.iterator()
-
-
 class CrawlBuffer(object):
     def __init__(self, username, limit=None, since=None, until=None, mentions=False,
-                 language=None, only_cached=False, only_new=True, buffer_size=25 * 1000):
+                 language=None, only_cached=False, buffer_size=25 * 1000):
         c = twint.Config()
-        filters = {}
         if mentions:
             c.Search = '@' + username
             signature_parts = [c.Search]
         else:
             c.Username = username
-            filters['username'] = c.Username
             signature_parts = [c.Username]
 
         if since:
-            c.Since = since.strftime('%Y-%m-%d')
-            filters['since'] = c.Since
+            c.Since = since
 
         if until:
-            c.Until = until.strftime('%Y-%m-%d')
-            filters['until'] = c.Until
+            c.Until = until
 
         if limit:
             c.Limit = limit
@@ -61,7 +44,6 @@ class CrawlBuffer(object):
         c.Store_object_tweets_list = self
 
         self.twint_config = c
-        self.filters = filters
         self.signature_parts = signature_parts
 
         c.Resume = get_crawl_fname('state/twint/resume_%s.txt', self.signature_parts)
@@ -73,9 +55,6 @@ class CrawlBuffer(object):
         self.buffer = []
         self.buffer_size = buffer_size
         self.only_cached = only_cached
-        self.only_new = only_new
-        if only_new:
-            self.seen = DiskCacheManager.get(settings.DISK_CACHE_SEEN_TWEETS)
 
     def flush(self):
         _LOG.info('flushing buffer for [%s]', self.fname)
@@ -103,8 +82,6 @@ class CrawlBuffer(object):
         data = streaming_loads(gzip.open(self.fname, 'rb'))
         for d_set in tqdm(data, desc='reading tweets:%s' % self.id):
             for d in d_set:
-                if self.only_new and d['id'] in self.seen:
-                    continue
                 t = Tweet()
                 for k, v in d.items():
                     if isinstance(v, str):
