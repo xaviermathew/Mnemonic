@@ -176,7 +176,7 @@ class TwitterJob(models.Model, NewsIndexable):
         else:
             entity = self.entity
 
-        for tweet in self.get_index_data():
+        for tweet in self.crawl_buffer.get_data():
             if isinstance(tweet.datetime, int):
                 published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
             else:
@@ -220,6 +220,24 @@ class TwitterJob(models.Model, NewsIndexable):
         from mnemonic.news.utils.twitter_utils import CrawlBuffer
         return CrawlBuffer(**self.cleaned_config)
 
+    def start_crawl(self):
+        if self.is_crawled:
+            _LOG.info('%s is already crawled', self)
+        else:
+            _LOG.info('starting twitter crawl for %s', self)
+            self.crawl_buffer.start_crawl()
+            self.is_crawled = True
+            self.save(update_fields=['is_crawled'])
+
+    def start_indexing(self):
+        if self.is_pushed_to_index:
+            _LOG.info('%s is already indexed', self)
+        else:
+            _LOG.info('indexing %s', self)
+            self.bulk_push_to_index_for_self()
+            self.is_pushed_to_index = True
+            self.save(update_fields=['is_pushed_to_index'])
+
     @classmethod
     def create(cls, entity, **config):
         ct = ContentType.objects.get_for_model(entity)
@@ -234,18 +252,5 @@ class TwitterJob(models.Model, NewsIndexable):
             object_id=object_id,
             config=config
         )
-        if tj.is_crawled:
-            _LOG.info('%s is already crawled', tj)
-        else:
-            _LOG.info('starting twitter crawl for %s', tj)
-            tj.crawl_buffer.start_crawl()
-            tj.is_crawled = True
-            tj.save(update_fields=['is_crawled'])
-
-        if tj.is_pushed_to_index:
-            _LOG.info('%s is already indexed', tj)
-        else:
-            _LOG.info('indexing %s', tj)
-            tj.bulk_push_to_index_for_self()
-            tj.is_pushed_to_index = True
-            tj.save(update_fields=['is_pushed_to_index'])
+        tj.start_crawl()
+        tj.start_indexing()
