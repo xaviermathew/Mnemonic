@@ -190,7 +190,7 @@ class TwitterJob(models.Model, NewsIndexable):
                 source_type = 'TwitterUser'
                 source = metadata.get('name')
             yield {
-                'id': 'tweet.%s' % tweet.tweet_id,
+                'id': 'tweet.%s' % tweet.id,
                 'news_type': 'tweet',
                 'source': source,
                 'source_type': source_type,
