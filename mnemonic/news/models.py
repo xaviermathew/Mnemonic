@@ -222,26 +222,18 @@ class TwitterJob(models.Model, NewsIndexable):
 
     @classmethod
     def create(cls, entity, **config):
-        filters = {}
         ct = ContentType.objects.get_for_model(entity)
         object_id = entity.pk
         if config.get('since'):
             config['since'] = config['since'].strftime('%Y-%m-%d')
         if config.get('until'):
             config['until'] = config['until'].strftime('%Y-%m-%d')
-        try:
-            tj = cls.objects.get(
-                content_type=ct,
-                object_id=object_id,
-                filters=filters
-            )
-        except cls.DoesNotExist:
-            tj = cls.objects.get_or_create(
-                content_type=ct,
-                object_id=object_id,
-                config=config,
-                foters=filters
-            )
+
+        tj, _ = cls.objects.get_or_create(
+            content_type=ct,
+            object_id=object_id,
+            config=config
+        )
         if tj.is_crawled:
             _LOG.info('%s is already crawled', tj)
         else:
