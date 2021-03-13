@@ -212,7 +212,7 @@ class TwitterJob(models.Model, NewsIndexable):
 
         connection = get_connection()
         data = self.get_bulk_index_data_for_self()
-        objects = (News.create(d).to_dict(include_meta=True) for d in data)
+        objects = (News(**d).to_dict(include_meta=True) for d in data)
         return bulk(connection, objects, chunk_size=self.BULK_INDEX_CHUNK_SIZE)
 
     @property
