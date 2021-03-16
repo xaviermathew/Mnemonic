@@ -194,10 +194,10 @@ class TwitterJob(models.Model, NewsIndexable):
                 'news_type': 'tweet',
                 'source': source,
                 'source_type': source_type,
-                'mentions': [d['name'] for d in metadata.get('reply_to', [])],
+                'mentions': [d.get('name') for d in metadata.get('reply_to', [])],
                 'title': tweet.tweet,
                 'published_on': published_on,
-                'url': metadata['link'],
+                'url': metadata.get('link'),
             }
 
     @classmethod
