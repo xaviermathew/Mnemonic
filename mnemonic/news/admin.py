@@ -68,3 +68,9 @@ class TweetEntityFilter(admin.SimpleListFilter):
 class TwitterJobAdmin(BaseAdmin):
     list_display = ['entity', 'is_crawled', 'is_pushed_to_index', 'config']
     list_filter = [TweetEntityFilter, 'is_crawled', 'is_pushed_to_index']
+    actions = ['process']
+
+    def process(self, request, qs):
+        messages.add_message(request, messages.INFO, 'Processing for [%s] TwitterJob(s) has been queued' % len(qs))
+        for tj in qs:
+            tj.entity.crawl_tweets_async()
