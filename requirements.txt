@@ -31,7 +31,7 @@ django-extensions==2.2.9
 django-nine==0.2.3
 django-storages==1.9.1
 -e git+https://github.com/xaviermathew/django-rest-elasticsearch.git@20756f40488097a19881b2fc40fb594264213dd3#egg=django_rest_elasticsearch
-djangorestframework==3.11.0
+djangorestframework==3.11.2
 docutils==0.15.2
 elasticsearch==7.8.0
 elasticsearch-dsl==7.2.1
