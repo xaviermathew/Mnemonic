@@ -87,11 +87,12 @@ class Feed(BaseModel):
 class Article(BaseModel, NewsIndexable):
     INDEX_NEWS_TYPE_FIELD = 'news_type'
     INDEX_SOURCE_FIELD = 'feed.source.name'
-    INDEX_SOURCE_TYPE_FIELD = 'feed.source.__class__.__name__'
+    INDEX_SOURCE_TYPE_FIELD = 'source_type'
     INDEX_TITLE_FIELD = 'title'
     INDEX_BODY_FIELD = 'body'
     INDEX_PUBLISHED_ON_FIELD = 'published_on'
     INDEX_URL_FIELD = 'url'
+    BULK_FETCH_CHUNK_SIZE = 2000
 
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE)
     url = models.URLField(unique=True, max_length=2048)
@@ -108,7 +109,11 @@ class Article(BaseModel, NewsIndexable):
 
     @property
     def news_type(self):
-        return 'news'
+        return 'Article'
+
+    @property
+    def source_type(self):
+        return 'Article'
 
     def save(self, *args, **kwargs):
         if self.feed.source == 'Google News India':
@@ -138,10 +143,10 @@ class Article(BaseModel, NewsIndexable):
                                           queue=settings.CELERY_TASK_QUEUE_PROCESS_ARTICLE,
                                           routing_key=settings.CELERY_TASK_ROUTING_KEY_PROCESS_ARTICLE)
 
-
-class TwitterUser(object):
-    def __init__(self, name):
-        self.name = name
+    @classmethod
+    def get_bulk_index_qs(cls):
+        return super(Article, cls).get_bulk_index_qs()\
+                                  .select_related('feed')
 
 
 class TwitterJob(models.Model, NewsIndexable):
@@ -172,9 +177,9 @@ class TwitterJob(models.Model, NewsIndexable):
     def get_bulk_index_data_for_self(self):
         mentions = self.cleaned_config['mentions']
         if mentions:
-            entity = None
+            source_type = 'Mention'
         else:
-            entity = self.entity
+            source_type = self.entity.__class__.__name__
 
         for tweet in self.crawl_buffer.get_data():
             if isinstance(tweet.datetime, int):
@@ -183,18 +188,12 @@ class TwitterJob(models.Model, NewsIndexable):
                 published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
             non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
             metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
-            if entity:
-                source_type = entity.__class__.__name__
-                source = entity.name
-            else:
-                source_type = 'TwitterUser'
-                source = metadata.get('name')
             yield {
                 '_id': 'tweet.%s' % tweet.id,
-                'news_type': 'tweet',
-                'source': source,
+                'news_type': 'Tweet',
+                'source': tweet.username,
                 'source_type': source_type,
-                'mentions': [d.get('name') for d in metadata.get('reply_to', [])],
+                'mentions': [d.get('username') for d in metadata.get('reply_to', []) if d.get('username')],
                 'title': tweet.tweet,
                 'published_on': published_on,
                 'url': metadata.get('link'),

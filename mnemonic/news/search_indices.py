@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.validators import EMPTY_VALUES
 
-from elasticsearch_dsl import Document, analyzer, Text, Date, Keyword
+from elasticsearch_dsl import Document, analyzer, Text, Date, Keyword, tokenizer
 from elasticsearch_dsl.connections import connections
 from retry import retry
 
@@ -9,15 +9,15 @@ from mnemonic.news.utils.string_utils import get
 
 connections.create_connection(hosts=settings.ELASTICSEARCH_HOSTS)
 article_analyzer = analyzer('article_analyzer',
-    tokenizer="standard",
+    tokenizer=tokenizer("uax_url_email", max_token_length=2048),
     filter=["lowercase", "stop", "snowball"],
 )
 
 class News(Document):
-    news_type = Text(analyzer='keyword', fields={'raw': Keyword()})
-    source = Text(analyzer='standard', fields={'raw': Keyword()})
-    source_type = Text(analyzer='keyword', fields={'raw': Keyword()})
-    mentions = Text(analyzer='standard', fields={'raw': Keyword(multi=True)}, multi=True)
+    news_type = Keyword(analyzer='keyword')
+    source = Keyword(analyzer='keyword')
+    source_type = Keyword(analyzer='keyword')
+    mentions = Keyword(analyzer='keyword', multi=True)
     title = Text(analyzer=article_analyzer)
     body = Text(analyzer=article_analyzer)
     published_on = Date()
@@ -69,12 +69,16 @@ class NewsIndexable(object):
         f(news)
 
     @classmethod
+    def get_bulk_index_qs(cls):
+        return cls.objects.filter(is_pushed_to_index=False)
+
+    @classmethod
     def get_bulk_index_data(cls):
         from django.db import models
         from mnemonic.news.utils.queryset_utils import queryset_iterator
 
         if issubclass(cls, models.Model):
-            qs = queryset_iterator(cls.objects.filter(is_pushed_to_index=False), chunksize=cls.BULK_FETCH_CHUNK_SIZE)
+            qs = queryset_iterator(cls.get_bulk_index_qs(), chunksize=cls.BULK_FETCH_CHUNK_SIZE)
             return (obj.get_index_data() for obj in qs)
         else:
             raise NotImplementedError
