@@ -9,15 +9,15 @@ from mnemonic.news.utils.string_utils import get
 
 connections.create_connection(hosts=settings.ELASTICSEARCH_HOSTS)
 article_analyzer = analyzer('article_analyzer',
-    tokenizer=tokenizer("uax_url_email", max_token_length=2048),
+    tokenizer=tokenizer('article_tokenizer', "uax_url_email", max_token_length=2048),
     filter=["lowercase", "stop", "snowball"],
 )
 
 class News(Document):
-    news_type = Keyword(analyzer='keyword')
-    source = Keyword(analyzer='keyword')
-    source_type = Keyword(analyzer='keyword')
-    mentions = Keyword(analyzer='keyword', multi=True)
+    news_type = Keyword()
+    source = Keyword()
+    source_type = Keyword()
+    mentions = Keyword(multi=True)
     title = Text(analyzer=article_analyzer)
     body = Text(analyzer=article_analyzer)
     published_on = Date()
