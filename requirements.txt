@@ -54,7 +54,7 @@ ipython-genutils==0.2.0
 itemadapter==0.1.0
 jedi==0.17.0
 jieba3k==0.35.1
-Jinja2==2.11.2
+Jinja2==2.11.3
 jinja2-time==0.2.0
 jmespath==0.10.0
 joblib==0.14.1
