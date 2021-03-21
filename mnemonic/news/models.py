@@ -177,11 +177,12 @@ class TwitterJob(models.Model, NewsIndexable):
                 published_on = datetime.strptime(tweet.datetime, '%Y-%m-%d %H:%M:%S %Z')
             non_metadata_keys = {'id', 'id_str', 'tweet', 'datetime', 'datestamp', 'timestamp'}
             metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
+            mentions = metadata.get('reply_to', []) + metadata.get('mentions', [])
             yield {
                 '_id': 'tweet.%s' % tweet.id,
                 'source': tweet.username,
                 'source_type': 'tweet',
-                'mentions': [d.get('username') for d in metadata.get('reply_to', []) if d.get('username')],
+                'mentions': [d.get('screen_name') for d in mentions if d.get('screen_name')],
                 'title': tweet.tweet,
                 'published_on': published_on,
                 'url': metadata.get('link'),
