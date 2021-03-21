@@ -17,8 +17,8 @@ def home(request):
     from mnemonic.entity.models import Person
     from mnemonic.news.models import NewsSource
     from mnemonic.news.utils.search_utils import get_search_results, get_client
-    # import pdb;pdb.set_trace()
-    twitter_users = qs_to_options(Person.objects.all(), 'name', 'name')
+
+    twitter_users = qs_to_options(Person.objects.all(), 'name', 'twitter_handle')
     query_keys = {'query', 'news_types', 'newspapers', 'twitter_handles',
                   'twitter_mentions', 'start_date', 'end_date'}
     query_params = {k: v for k, v in dict(request.GET).items()
@@ -33,6 +33,7 @@ def home(request):
     if query_params:
         ctx.update(query_params)
         ctx['num_results'], ctx['results'] = get_search_results(**query_params)
+        ctx['twitter_lookup'] = {d['value']: d['label'] for d in twitter_users}
     return render(request, 'home.html', ctx)
 
 
