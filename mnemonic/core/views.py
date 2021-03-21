@@ -19,7 +19,7 @@ def home(request):
     from mnemonic.news.utils.search_utils import get_search_results, get_client
 
     twitter_users = qs_to_options(Person.objects.all(), 'name', 'twitter_handle')
-    query_keys = {'query', 'news_types', 'newspapers', 'twitter_handles',
+    query_keys = {'query', 'source_types', 'newspapers', 'twitter_handles',
                   'twitter_mentions', 'start_date', 'end_date'}
     query_params = {k: v for k, v in dict(request.GET).items()
                     if k in query_keys and ((isinstance(v, list) and v[0]) or v)}

@@ -14,7 +14,6 @@ article_analyzer = analyzer('article_analyzer',
 )
 
 class News(Document):
-    news_type = Keyword()
     source = Keyword()
     source_type = Keyword()
     mentions = Keyword(multi=True)
@@ -31,7 +30,6 @@ class News(Document):
 
 
 class NewsIndexable(object):
-    INDEX_NEWS_TYPE_FIELD = None
     INDEX_SOURCE_FIELD = None
     INDEX_SOURCE_TYPE_FIELD = None
     INDEX_MENTIONS_FIELD = None
@@ -48,7 +46,6 @@ class NewsIndexable(object):
 
     def get_index_data(self):
         d = {
-            'news_type': get(self, self.INDEX_NEWS_TYPE_FIELD),
             'source': get(self, self.INDEX_SOURCE_FIELD),
             'source_type': get(self, self.INDEX_SOURCE_TYPE_FIELD),
             'mentions': get(self, self.INDEX_MENTIONS_FIELD),

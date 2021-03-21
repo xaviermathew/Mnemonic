@@ -85,7 +85,6 @@ class Feed(BaseModel):
 
 
 class Article(BaseModel, NewsIndexable):
-    INDEX_NEWS_TYPE_FIELD = 'news_type'
     INDEX_SOURCE_FIELD = 'feed.source.name'
     INDEX_SOURCE_TYPE_FIELD = 'source_type'
     INDEX_TITLE_FIELD = 'title'
@@ -108,12 +107,8 @@ class Article(BaseModel, NewsIndexable):
         return '%s:%s' % (self.feed, self.title)
 
     @property
-    def news_type(self):
-        return 'Article'
-
-    @property
     def source_type(self):
-        return 'Article'
+        return 'article'
 
     def save(self, *args, **kwargs):
         if self.feed.source == 'Google News India':
@@ -175,12 +170,6 @@ class TwitterJob(models.Model, NewsIndexable):
         return defaults
 
     def get_bulk_index_data_for_self(self):
-        mentions = self.cleaned_config['mentions']
-        if mentions:
-            source_type = 'Mention'
-        else:
-            source_type = self.entity.__class__.__name__
-
         for tweet in self.crawl_buffer.get_data():
             if isinstance(tweet.datetime, int):
                 published_on = datetime.fromtimestamp(tweet.datetime / 1000, pytz.utc)
@@ -190,9 +179,8 @@ class TwitterJob(models.Model, NewsIndexable):
             metadata = {k: v for k, v in vars(tweet).items() if k not in non_metadata_keys}
             yield {
                 '_id': 'tweet.%s' % tweet.id,
-                'news_type': 'Tweet',
                 'source': tweet.username,
-                'source_type': source_type,
+                'source_type': 'tweet',
                 'mentions': [d.get('username') for d in metadata.get('reply_to', []) if d.get('username')],
                 'title': tweet.tweet,
                 'published_on': published_on,
