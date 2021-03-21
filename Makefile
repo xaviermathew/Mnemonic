@@ -3,6 +3,7 @@ VIRTUAL_ENV_ROOT=$(HOME)/virtual_env
 VIRTUAL_ENV_NAME=mnemonic
 CRONTAB_FILE=config/crontab/crontab
 
+.PHONY: static
 link_manage_py:
 	ln -s $(PROJECT_DIR)/manage.py $(VIRTUAL_ENV_ROOT)/$(VIRTUAL_ENV_NAME)/bin/manage.py
 make_dirs:
