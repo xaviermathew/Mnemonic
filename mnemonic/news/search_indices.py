@@ -20,7 +20,7 @@ class News(Document):
     title = Text(analyzer=article_analyzer)
     body = Text(analyzer=article_analyzer)
     published_on = Date()
-    url = Keyword()
+    url = Keyword(ignore_above=2048)
 
     class Index:
         name = 'news'
