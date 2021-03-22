@@ -88,4 +88,4 @@ class NewsIndexable(object):
         connection = get_connection()
         data = cls.get_bulk_index_data()
         objects = (News.create(d).to_dict(include_meta=True) for d in data)
-        return bulk(connection, objects, chunk_size=cls.BULK_INDEX_CHUNK_SIZE)
+        return bulk(connection, objects, chunk_size=cls.BULK_INDEX_CHUNK_SIZE, timeout=100)
