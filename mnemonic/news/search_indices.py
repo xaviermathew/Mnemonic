@@ -83,9 +83,16 @@ class NewsIndexable(object):
     @classmethod
     def bulk_push_to_index(cls):
         from elasticsearch.helpers import bulk
+        from mnemonic.news.utils.iter_utils import chunkify
         from mnemonic.news.utils.search_utils import get_connection
 
         connection = get_connection()
         data = cls.get_bulk_index_data()
         objects = (News.create(d).to_dict(include_meta=True) for d in data)
-        return bulk(connection, objects, chunk_size=cls.BULK_INDEX_CHUNK_SIZE, timeout=100)
+
+        @retry(tries=10, delay=10)
+        def f(chunk):
+            bulk(connection, chunk, chunk_size=cls.BULK_INDEX_CHUNK_SIZE, timeout=60)
+
+        for chunk in chunkify(objects, cls.BULK_INDEX_CHUNK_SIZE):
+            f(chunk)

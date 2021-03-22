@@ -6,7 +6,7 @@ import twint
 from twint.tweet import tweet as Tweet
 from tqdm import tqdm
 
-from mnemonic.news.utils.msgpack_utils import streaming_loads, dumps
+from mnemonic.news.utils.msgpack_utils import streaming_loads2 as streaming_loads, dumps
 from mnemonic.news.utils.string_utils import slugify
 
 _LOG = logging.getLogger(__name__)
@@ -81,10 +81,11 @@ class CrawlBuffer(object):
         self.close()
         data = streaming_loads(gzip.open(self.fname, 'rb'))
         for d_set in tqdm(data, desc='reading tweets:%s' % self.id):
-            for d in d_set:
-                t = Tweet()
-                for k, v in d.items():
-                    if isinstance(v, str):
-                        v = v.replace('\u0000', '')
-                    t.__dict__[k] = v
-                yield t
+            if isinstance(d_set, list) and d_set and isinstance(d_set[0], dict) and 'conversation_id' in d_set[0]:
+                for d in d_set:
+                    t = Tweet()
+                    for k, v in d.items():
+                        if isinstance(v, str):
+                            v = v.replace('\u0000', '')
+                        t.__dict__[k] = v
+                    yield t

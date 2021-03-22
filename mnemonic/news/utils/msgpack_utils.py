@@ -2,6 +2,7 @@ import datetime
 import logging
 
 import msgpack
+import msgpack.exceptions
 
 _LOG = logging.getLogger(__name__)
 
@@ -47,7 +48,11 @@ def streaming_loads2(stream, **kwargs):
             value = next(input_data)
         except ValueError:
             print('error reading entry. scanning for next good item...')
-            input_data.skip()
+            try:
+                input_data.skip()
+            except msgpack.exceptions.OutOfData:
+                print('error skipping data. msgpack says no more data')
+                return
             while True:
                 try:
                     skip_value = next(input_data)
