@@ -41,32 +41,34 @@ def streaming_loads2(stream, **kwargs):
     """
     wrapper around streaming_loads() that doesnt break on errors
     """
-
+    def skip_loop(input_data):
+        try:
+            input_data.skip()
+        except msgpack.exceptions.OutOfData:
+            print('error skipping data. msgpack says no more data')
+            return
+        while True:
+            try:
+                skip_value = next(input_data)
+            except StopIteration:
+                return
+            except ValueError as ex:
+                print('error skipping entry - %s. scanning for next good item...' % ex)
+                yield from skip_loop(input_data)
+            else:
+                if isinstance(skip_value, dict):
+                    print('found good entry')
+                    yield skip_value
+                    break
+                else:
+                    print('skip partial entry', skip_value)
     input_data = streaming_loads(stream, unicode_errors='replace', **kwargs)
     while True:
         try:
             value = next(input_data)
         except ValueError as ex:
             print('error reading entry - %s. scanning for next good item...' % ex)
-            try:
-                input_data.skip()
-            except msgpack.exceptions.OutOfData:
-                print('error skipping data. msgpack says no more data')
-                return
-            while True:
-                try:
-                    skip_value = next(input_data)
-                except StopIteration:
-                    return
-                except ValueError as ex:
-                    print('error skipping entry - %s. scanning for next good item...' % ex)
-                else:
-                    if isinstance(skip_value, dict):
-                        print('found good entry')
-                        yield skip_value
-                        break
-                    else:
-                        print('skip partial entry', skip_value)
+            yield from skip_loop(input_data)
         except StopIteration:
             return
         else:
