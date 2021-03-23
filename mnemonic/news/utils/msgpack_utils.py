@@ -46,8 +46,8 @@ def streaming_loads2(stream, **kwargs):
     while True:
         try:
             value = next(input_data)
-        except ValueError:
-            print('error reading entry. scanning for next good item...')
+        except ValueError as ex:
+            print('error reading entry - %s. scanning for next good item...' % ex)
             try:
                 input_data.skip()
             except msgpack.exceptions.OutOfData:
@@ -58,6 +58,8 @@ def streaming_loads2(stream, **kwargs):
                     skip_value = next(input_data)
                 except StopIteration:
                     return
+                except ValueError as ex:
+                    print('error skipping entry - %s. scanning for next good item...' % ex)
                 else:
                     if isinstance(skip_value, dict):
                         print('found good entry')
