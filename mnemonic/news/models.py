@@ -207,7 +207,7 @@ class TwitterJob(models.Model, NewsIndexable):
 
         @retry(tries=10, delay=10)
         def f(chunk):
-            bulk(connection, chunk, chunk_size=self.BULK_INDEX_CHUNK_SIZE, timeout=60)
+            bulk(connection, chunk, chunk_size=self.BULK_INDEX_CHUNK_SIZE, request_timeout=60)
 
         for chunk in chunkify(objects, self.BULK_INDEX_CHUNK_SIZE):
             f(chunk)
