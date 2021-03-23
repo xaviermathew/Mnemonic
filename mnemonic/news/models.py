@@ -196,13 +196,21 @@ class TwitterJob(models.Model, NewsIndexable):
 
     def bulk_push_to_index_for_self(self):
         from elasticsearch.helpers import bulk
+        from retry import retry
         from mnemonic.news.search_indices import News
+        from mnemonic.news.utils.iter_utils import chunkify
         from mnemonic.news.utils.search_utils import get_connection
 
         connection = get_connection()
         data = self.get_bulk_index_data_for_self()
         objects = (News(**d).to_dict(include_meta=True) for d in data)
-        return bulk(connection, objects, chunk_size=self.BULK_INDEX_CHUNK_SIZE)
+
+        @retry(tries=10, delay=10)
+        def f(chunk):
+            bulk(connection, chunk, chunk_size=self.BULK_INDEX_CHUNK_SIZE, timeout=60)
+
+        for chunk in chunkify(objects, self.BULK_INDEX_CHUNK_SIZE):
+            f(chunk)
 
     @property
     def crawl_buffer(self):
