@@ -95,7 +95,7 @@ class NewsIndexable(object):
         def f(chunk):
             chunk = list(chunk)
             bulk(connection, chunk, chunk_size=cls.BULK_INDEX_CHUNK_SIZE, request_timeout=60)
-            pks = [news_obj.meta.id.split(':')[1] for news_obj in chunk]
+            pks = [d['_id'].split(':')[1] for d in chunk]
             cls.objects.filter(pk__in=pks).update(is_pushed_to_index=True)
 
         for chunk in tqdm(chunkify(objects, cls.BULK_INDEX_CHUNK_SIZE)):
