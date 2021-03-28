@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from django.conf import settings
 from django.core.validators import EMPTY_VALUES
 
@@ -76,7 +77,7 @@ class NewsIndexable(object):
 
         if issubclass(cls, models.Model):
             qs = queryset_iterator(cls.get_bulk_index_qs(), chunksize=cls.BULK_FETCH_CHUNK_SIZE)
-            return (obj.get_index_data() for obj in qs)
+            return (dict(_id=obj.get_uid(), **obj.get_index_data()) for obj in qs)
         else:
             raise NotImplementedError
 
@@ -88,11 +89,14 @@ class NewsIndexable(object):
 
         connection = get_connection()
         data = cls.get_bulk_index_data()
-        objects = (News.create(d).to_dict(include_meta=True) for d in data)
+        objects = (News(**d).to_dict(include_meta=True) for d in data)
 
         @retry(tries=10, delay=10)
         def f(chunk):
+            chunk = list(chunk)
             bulk(connection, chunk, chunk_size=cls.BULK_INDEX_CHUNK_SIZE, request_timeout=60)
+            pks = [news_obj.meta.id.split(':')[1] for news_obj in chunk]
+            cls.objects.filter(pk__in=pks).update(is_pushed_to_index=True)
 
-        for chunk in chunkify(objects, cls.BULK_INDEX_CHUNK_SIZE):
+        for chunk in tqdm(chunkify(objects, cls.BULK_INDEX_CHUNK_SIZE)):
             f(chunk)
