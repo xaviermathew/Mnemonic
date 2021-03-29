@@ -23,6 +23,8 @@ $(document).ready(function() {
             $('#select_twitter_mentions').prop('disabled', false);
         }
     });
-    $('#select_source_types').val(['article', 'tweet']);
-    $('#select_source_types').change();
+    if ($('#select_source_types').val().length == 0) {
+        $('#select_source_types').val(['article', 'tweet']);
+        $('#select_source_types').change();
+    }
 });
