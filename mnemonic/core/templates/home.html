@@ -15,7 +15,7 @@
         <div class="form-group">
           <label for="select_source_types">Search across</label>
           <select class="form-control" id="select_source_types" name="source_types" multiple required>
-            <option value="news" {% if 'article' in source_types %}selected{% endif %}>News articles</option>
+            <option value="article" {% if 'article' in source_types %}selected{% endif %}>News articles</option>
             <option value="tweet" {% if 'tweet' in source_types %}selected{% endif %}>Tweets</option>
           </select>
         </div>
