@@ -10,6 +10,7 @@ from mnemonic.news.utils.msgpack_utils import streaming_loads2 as streaming_load
 from mnemonic.news.utils.string_utils import slugify
 
 _LOG = logging.getLogger(__name__)
+GZIP_FILES = False
 
 
 def get_crawl_fname(prefix, signature_parts):
@@ -50,8 +51,12 @@ class CrawlBuffer(object):
         self.resume_fname = c.Resume
 
         self.id = '_'.join(signature_parts)
-        self.fname = get_crawl_fname('state/twint/results_%s.msgpack.gz', signature_parts)
-        self.file = gzip.open(self.fname, 'ab')
+        if GZIP_FILES:
+            self.fname = get_crawl_fname('state/twint/results_%s.msgpack.gz', signature_parts)
+            self.file = gzip.open(self.fname, 'ab')
+        else:
+            self.fname = get_crawl_fname('state/twint/results_%s.msgpack', signature_parts)
+            self.file = open(self.fname, 'ab')
         self.buffer = []
         self.buffer_size = buffer_size
         self.only_cached = only_cached
@@ -79,7 +84,10 @@ class CrawlBuffer(object):
 
     def get_data(self):
         self.close()
-        data = streaming_loads(gzip.open(self.fname, 'rb'))
+        if GZIP_FILES:
+            data = streaming_loads(gzip.open(self.fname, 'rb'))
+        else:
+            data = streaming_loads(open(self.fname, 'rb'))
         for d_set in tqdm(data, desc='reading tweets:%s' % self.id):
             if isinstance(d_set, list) and d_set and isinstance(d_set[0], dict) and 'conversation_id' in d_set[0]:
                 for d in d_set:
