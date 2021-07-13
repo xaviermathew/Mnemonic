@@ -16,7 +16,6 @@ from django.contrib.postgres.fields import JSONField
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.utils import IntegrityError
-from django.utils.functional import cached_property
 
 from mnemonic.entity.models import EntityBase
 from mnemonic.news.search_indices import NewsIndexable
@@ -56,15 +55,20 @@ class Feed(BaseModel):
 
         d = feedparser.parse(self.url)
         for entry in d['entries']:
-            url = entry.pop('link')
-            published_on = entry.pop('published_parsed')
+            try:
+                url = entry.pop('link')
+                published_on = entry.pop('published_parsed')
+                title = entry.pop('title')
+                summary = entry.pop('summary', None)
+            except KeyError:
+                continue
             if isinstance(published_on, struct_time):
                 published_on = datetime.fromtimestamp(mktime(published_on))
             try:
                 a = Article.objects.create(feed=self,
                                            url=url,
-                                           title=entry.pop('title'),
-                                           summary=entry.pop('summary', None),
+                                           title=title,
+                                           summary=summary,
                                            published_on=published_on,
                                            is_top_news=self.is_top_news,
                                            metadata=entry)
@@ -125,9 +129,10 @@ class Article(BaseModel, NewsIndexable):
             self.body = get_body_from_article(self.url)
             save_fields.append('body')
         if not self.is_pushed_to_index:
-            self.push_to_index()
-            self.is_pushed_to_index = True
-            save_fields.append('is_pushed_to_index')
+            # self.push_to_index()
+            # self.is_pushed_to_index = True
+            # save_fields.append('is_pushed_to_index')
+            pass
         if save_fields:
             self.save(update_fields=save_fields)
             _LOG.info('article:[%s] - processed url:[%s]', self.pk, self.url)
@@ -250,4 +255,4 @@ class TwitterJob(models.Model, NewsIndexable):
             config=config
         )
         tj.start_crawl()
-        tj.start_indexing()
+        # tj.start_indexing()
