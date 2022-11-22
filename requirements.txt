@@ -73,7 +73,7 @@ parso==0.7.0
 pdbpp==0.10.2
 pexpect==4.8.0
 pickleshare==0.7.5
-Pillow==7.1.2
+Pillow==9.3.0
 pipdeptree==1.0.0
 poyo==0.5.0
 prompt-toolkit==1.0.18
